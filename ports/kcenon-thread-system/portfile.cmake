@@ -26,6 +26,19 @@ vcpkg_cmake_config_fixup(
     CONFIG_PATH lib/cmake/thread_system
 )
 
+# Remove empty directories that cause vcpkg post-build validation errors
+file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/include/thread_system/interfaces")
+
+# Fix absolute paths in pkgconfig files
+vcpkg_fixup_pkgconfig()
+
+# Fix upstream bug: version file rejects 0.3.0 as below hardcoded minimum 1.0.0
+vcpkg_replace_string(
+    "${CURRENT_PACKAGES_DIR}/share/thread_system/thread_system-config-version.cmake"
+    "set(MINIMUM_SUPPORTED_VERSION \"1.0.0\")"
+    "set(MINIMUM_SUPPORTED_VERSION \"0.1.0\")"
+)
+
 file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/include")
 file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/share")
 
