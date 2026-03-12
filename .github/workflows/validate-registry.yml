@@ -65,7 +65,7 @@ jobs:
           # Verify each port has a version file
           for port_dir in ports/kcenon-*/; do
             port_name=$(basename "$port_dir")
-            prefix="${port_name:0:2}"
+            prefix="${port_name:0:1}-"
             version_file="versions/${prefix}/${port_name}.json"
 
             if [ ! -f "$version_file" ]; then
