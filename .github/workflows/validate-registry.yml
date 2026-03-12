@@ -1,0 +1,129 @@
+name: Validate Registry
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate port structure
+        run: |
+          errors=0
+
+          for port_dir in ports/kcenon-*/; do
+            port_name=$(basename "$port_dir")
+            echo "Checking $port_name..."
+
+            if [ ! -f "$port_dir/portfile.cmake" ]; then
+              echo "ERROR: $port_name missing portfile.cmake"
+              errors=$((errors + 1))
+            fi
+
+            if [ ! -f "$port_dir/vcpkg.json" ]; then
+              echo "ERROR: $port_name missing vcpkg.json"
+              errors=$((errors + 1))
+            fi
+
+            # Validate vcpkg.json is valid JSON
+            if [ -f "$port_dir/vcpkg.json" ]; then
+              if ! python3 -m json.tool "$port_dir/vcpkg.json" > /dev/null 2>&1; then
+                echo "ERROR: $port_name has invalid vcpkg.json"
+                errors=$((errors + 1))
+              fi
+            fi
+          done
+
+          if [ $errors -gt 0 ]; then
+            echo "Found $errors error(s)"
+            exit 1
+          fi
+          echo "All ports validated successfully"
+
+      - name: Validate version database
+        run: |
+          errors=0
+
+          # Check baseline.json exists and is valid
+          if [ ! -f "versions/baseline.json" ]; then
+            echo "ERROR: missing versions/baseline.json"
+            exit 1
+          fi
+
+          if ! python3 -m json.tool versions/baseline.json > /dev/null 2>&1; then
+            echo "ERROR: invalid versions/baseline.json"
+            exit 1
+          fi
+
+          # Verify each port has a version file
+          for port_dir in ports/kcenon-*/; do
+            port_name=$(basename "$port_dir")
+            prefix="${port_name:0:2}"
+            version_file="versions/${prefix}/${port_name}.json"
+
+            if [ ! -f "$version_file" ]; then
+              echo "ERROR: missing version file: $version_file"
+              errors=$((errors + 1))
+              continue
+            fi
+
+            if ! python3 -m json.tool "$version_file" > /dev/null 2>&1; then
+              echo "ERROR: invalid JSON in $version_file"
+              errors=$((errors + 1))
+            fi
+          done
+
+          # Verify baseline has entries for all ports
+          for port_dir in ports/kcenon-*/; do
+            port_name=$(basename "$port_dir")
+            if ! python3 -c "
+          import json, sys
+          with open('versions/baseline.json') as f:
+              data = json.load(f)
+          if '$port_name' not in data.get('default', {}):
+              print('ERROR: $port_name missing from baseline.json')
+              sys.exit(1)
+          "; then
+              errors=$((errors + 1))
+            fi
+          done
+
+          if [ $errors -gt 0 ]; then
+            echo "Found $errors error(s)"
+            exit 1
+          fi
+          echo "Version database validated successfully"
+
+      - name: Validate git-tree references
+        run: |
+          errors=0
+
+          for version_file in versions/k-/kcenon-*.json; do
+            port_name=$(basename "$version_file" .json)
+            echo "Checking git-tree for $port_name..."
+
+            git_tree=$(python3 -c "
+          import json
+          with open('$version_file') as f:
+              data = json.load(f)
+          print(data['versions'][0]['git-tree'])
+          ")
+
+            if ! git cat-file -e "$git_tree" 2>/dev/null; then
+              echo "ERROR: git-tree $git_tree not found for $port_name"
+              errors=$((errors + 1))
+            fi
+          done
+
+          if [ $errors -gt 0 ]; then
+            echo "Found $errors error(s)"
+            exit 1
+          fi
+          echo "All git-tree references valid"
