@@ -10,7 +10,7 @@
     },
     "kcenon-logger-system": {
       "baseline": "0.1.1",
-      "port-version": 1
+      "port-version": 2
     },
     "kcenon-container-system": {
       "baseline": "0.1.0",
