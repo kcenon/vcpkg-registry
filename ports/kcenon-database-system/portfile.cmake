@@ -1,32 +1,51 @@
 # kcenon-database-system portfile
 # Pure, lightweight C++20 Core DAL library with multi-backend support
 
-# The integrated_database library exports no DLL symbols by design (static-init registration pattern)
-set(VCPKG_POLICY_DLLS_WITHOUT_EXPORTS enabled)
-
 vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO kcenon/database_system
-    REF 918b89836ff39eb4a03221d6da9331334b6e91c6
-    SHA512 c4e931487735a39047c12c2002c7b8532995d2e33146789ca3d6894d76125980d3c1c2b9173df5cf40d395dfe3a6b6d64779a1e160c3ff0567966420b63f207f
+    REF 37b5c37ae6311a19708f208938e262da73d115d0
+    SHA512 d155936ec3ae7fcc38fe2c9003deb420f79e62f0ca528ba11ab60d390ba4be4c9abae7739b4dbb03eaea3a6359b0406df587d624d74d37074768cc75b0a99004
     HEAD_REF main
-    PATCHES
-        fix-common-system-target.patch
 )
+
+# Feature-based backend selection
+set(DB_USE_POSTGRESQL OFF)
+if("postgresql" IN_LIST FEATURES)
+    set(DB_USE_POSTGRESQL ON)
+endif()
+
+set(DB_USE_SQLITE OFF)
+if("sqlite" IN_LIST FEATURES)
+    set(DB_USE_SQLITE ON)
+endif()
+
+set(DB_USE_MONGODB OFF)
+if("mongodb" IN_LIST FEATURES)
+    set(DB_USE_MONGODB ON)
+endif()
+
+set(DB_USE_REDIS OFF)
+if("redis" IN_LIST FEATURES)
+    set(DB_USE_REDIS ON)
+endif()
 
 vcpkg_cmake_configure(
     SOURCE_PATH "${SOURCE_PATH}"
     OPTIONS
+        -DUSE_POSTGRESQL=${DB_USE_POSTGRESQL}
+        -DUSE_SQLITE=${DB_USE_SQLITE}
+        -DUSE_MONGODB=${DB_USE_MONGODB}
+        -DUSE_REDIS=${DB_USE_REDIS}
         -DUSE_UNIT_TEST=OFF
         -DBUILD_DATABASE_SAMPLES=OFF
-        -DUSE_POSTGRESQL=OFF
-        -DUSE_SQLITE=OFF
-        -DUSE_MONGODB=OFF
-        -DUSE_REDIS=OFF
+        -DDATABASE_BUILD_BENCHMARKS=OFF
+        -DDATABASE_BUILD_INTEGRATION_TESTS=OFF
+        -DBUILD_SHARED_LIBS=OFF
         -DUSE_THREAD_SYSTEM=OFF
         -DUSE_MONITORING_SYSTEM=OFF
         -DUSE_CONTAINER_SYSTEM=OFF
-        -DDATABASE_BUILD_INTEGRATION_TESTS=OFF
+        -DBUILD_INTEGRATED_DATABASE=OFF
 )
 
 vcpkg_cmake_install()
@@ -35,20 +54,6 @@ vcpkg_cmake_config_fixup(
     PACKAGE_NAME DatabaseSystem
     CONFIG_PATH lib/cmake/DatabaseSystem
 )
-
-# Fix: integrated_database uses static-init registration pattern with zero source
-# files when all backends are disabled. MSVC produces no .lib for empty targets,
-# but CMake install(EXPORT) still references it. Create stub .lib (empty COFF
-# archive) so the imported target file-existence check passes.
-if(VCPKG_TARGET_IS_WINDOWS)
-    foreach(_libdir "${CURRENT_PACKAGES_DIR}/lib" "${CURRENT_PACKAGES_DIR}/debug/lib")
-        set(_lib "${_libdir}/integrated_database.lib")
-        if(NOT EXISTS "${_lib}")
-            file(MAKE_DIRECTORY "${_libdir}")
-            file(WRITE "${_lib}" "!<arch>\n")
-        endif()
-    endforeach()
-endif()
 
 file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/include")
 file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/share")
