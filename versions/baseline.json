@@ -6,7 +6,7 @@
     },
     "kcenon-thread-system": {
       "baseline": "0.3.0",
-      "port-version": 1
+      "port-version": 2
     },
     "kcenon-logger-system": {
       "baseline": "0.1.1",
@@ -18,15 +18,15 @@
     },
     "kcenon-monitoring-system": {
       "baseline": "0.1.0",
-      "port-version": 0
+      "port-version": 1
     },
     "kcenon-database-system": {
       "baseline": "0.1.0",
-      "port-version": 2
+      "port-version": 3
     },
     "kcenon-network-system": {
       "baseline": "0.1.0",
-      "port-version": 1
+      "port-version": 2
     },
     "kcenon-pacs-system": {
       "baseline": "0.1.0",
