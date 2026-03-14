@@ -4,8 +4,8 @@
 vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO kcenon/logger_system
-    REF 8e3fb18fe554c652a8f7cb4ab1573110563d23bc
-    SHA512 f019f20a3e17bf8398506bf90d880a6aedf1b6b97f12e5030aea980a21eee2a3aca7a5fddcbec745f285bb5a498ee93748d7c47c9f0744fc0854bf0132a09331
+    REF "v${VERSION}"
+    SHA512 668c03f997368831207c5865c1615b774a28a08bcd297e09a2bd7e207bf3e6024eab8ba25516dd16ad5b20c7156cdfb8a240770884a7fc4f17c1517f50019ba1
     HEAD_REF main
     PATCHES
         fix-unified-deps-target-names.patch

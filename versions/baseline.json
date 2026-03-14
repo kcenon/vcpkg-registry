@@ -9,8 +9,8 @@
       "port-version": 2
     },
     "kcenon-logger-system": {
-      "baseline": "0.1.1",
-      "port-version": 2
+      "baseline": "0.1.2",
+      "port-version": 0
     },
     "kcenon-container-system": {
       "baseline": "0.1.0",
@@ -30,7 +30,7 @@
     },
     "kcenon-pacs-system": {
       "baseline": "0.1.0",
-      "port-version": 2
+      "port-version": 3
     }
   }
 }
