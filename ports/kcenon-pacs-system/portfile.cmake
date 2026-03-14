@@ -4,8 +4,8 @@
 vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO kcenon/pacs_system
-    REF 1a0560a34eeb61110a9380cb2bdd29fe0de68ce1
-    SHA512 aa80d5dada91356692b5db4b44dda84e9d34a6bfce65e9d6c84fab90f296ab91568b67faf3e5ba89ed13e0bcef93f400ae5849afba8076daed912a5b694cdee6
+    REF "v${VERSION}"
+    SHA512 242dd7bc82f56e0267e4978dd406aebeebd1bb50e70f93a8c809d3474ae6de1d0e692cc8fbbbaa81dbb68e2642b48c14100b8d5daa5f99097287af2d9465904c
     HEAD_REF main
 )
 
