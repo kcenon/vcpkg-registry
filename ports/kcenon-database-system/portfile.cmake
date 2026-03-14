@@ -4,8 +4,8 @@
 vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO kcenon/database_system
-    REF 37b5c37ae6311a19708f208938e262da73d115d0
-    SHA512 d155936ec3ae7fcc38fe2c9003deb420f79e62f0ca528ba11ab60d390ba4be4c9abae7739b4dbb03eaea3a6359b0406df587d624d74d37074768cc75b0a99004
+    REF "v${VERSION}"
+    SHA512 7207570689fad1ae2afc96b4b7c79be3690a174e6f7e9c704ec470fa71f74e18ab872becbbd4a15bb3ace5a7d5eb9d5d7a5125ccca49062abab7f61b2d06185f
     HEAD_REF main
 )
 
