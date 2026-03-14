@@ -5,10 +5,8 @@ vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO kcenon/logger_system
     REF "v${VERSION}"
-    SHA512 668c03f997368831207c5865c1615b774a28a08bcd297e09a2bd7e207bf3e6024eab8ba25516dd16ad5b20c7156cdfb8a240770884a7fc4f17c1517f50019ba1
+    SHA512 90884ec4210e6ebeb534aed2eb9928cfc2a80d0ab7220f9ed9be63d32bcfc6154e6bd2960c7d11cb196c3dcb345650c6e182f8edc44867b4bcf0efeb1dfed0f2
     HEAD_REF main
-    PATCHES
-        fix-unified-deps-target-names.patch
 )
 
 # Disable thread_system integration: upstream CMake does not link thread_system
