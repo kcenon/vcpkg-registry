@@ -25,6 +25,10 @@ vcpkg_cmake_configure(
         -DPACS_BUILD_MODULES=OFF
         -DPACS_WARNINGS_AS_ERRORS=OFF
         -DBUILD_SHARED_LIBS=OFF
+        # Disable all FetchContent fallbacks; all deps must be resolved via vcpkg
+        -DPACS_FETCH_OPENJPH=OFF
+        -DPACS_FETCH_CROW=OFF
+        -DFETCHCONTENT_FULLY_DISCONNECTED=ON
 )
 
 vcpkg_cmake_install()
