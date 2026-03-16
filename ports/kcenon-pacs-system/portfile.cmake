@@ -9,6 +9,13 @@ vcpkg_from_github(
     HEAD_REF main
 )
 
+vcpkg_check_features(OUT_FEATURE_OPTIONS FEATURE_OPTIONS
+    FEATURES
+        storage  PACS_BUILD_STORAGE
+        aws      PACS_WITH_AWS_SDK
+        azure    PACS_WITH_AZURE_SDK
+)
+
 vcpkg_cmake_configure(
     SOURCE_PATH "${SOURCE_PATH}"
     OPTIONS
@@ -19,9 +26,6 @@ vcpkg_cmake_configure(
         -DPACS_WITH_COMMON_SYSTEM=ON
         -DPACS_WITH_CONTAINER_SYSTEM=ON
         -DPACS_WITH_NETWORK_SYSTEM=ON
-        -DPACS_BUILD_STORAGE=OFF
-        -DPACS_WITH_AWS_SDK=OFF
-        -DPACS_WITH_AZURE_SDK=OFF
         -DPACS_BUILD_MODULES=OFF
         -DPACS_WARNINGS_AS_ERRORS=OFF
         -DBUILD_SHARED_LIBS=OFF
@@ -29,6 +33,7 @@ vcpkg_cmake_configure(
         -DPACS_FETCH_OPENJPH=OFF
         -DPACS_FETCH_CROW=OFF
         -DFETCHCONTENT_FULLY_DISCONNECTED=ON
+        ${FEATURE_OPTIONS}
 )
 
 vcpkg_cmake_install()

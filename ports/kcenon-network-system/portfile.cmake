@@ -9,6 +9,11 @@ vcpkg_from_github(
     HEAD_REF main
 )
 
+vcpkg_check_features(OUT_FEATURE_OPTIONS FEATURE_OPTIONS
+    FEATURES
+        logging BUILD_WITH_LOGGER_SYSTEM
+)
+
 vcpkg_cmake_configure(
     SOURCE_PATH "${SOURCE_PATH}"
     OPTIONS
@@ -20,6 +25,7 @@ vcpkg_cmake_configure(
         -DNETWORK_BUILD_INTEGRATION_TESTS=OFF
         -DNETWORK_BUILD_MODULES=OFF
         -DBUILD_WITH_COMMON_SYSTEM=ON
+        ${FEATURE_OPTIONS}
 )
 
 vcpkg_cmake_install()
