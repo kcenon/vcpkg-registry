@@ -9,6 +9,13 @@ vcpkg_from_github(
     HEAD_REF main
 )
 
+# Feature-based options
+vcpkg_check_features(OUT_FEATURE_OPTIONS FEATURE_OPTIONS
+    FEATURES
+        encryption LOGGER_USE_ENCRYPTION
+        otlp      LOGGER_ENABLE_OTLP
+)
+
 # Disable thread_system integration: upstream CMake does not link thread_system
 # library properly in vcpkg mode (unresolved externals for thread_pool symbols).
 # The logger falls back to its standalone executor which works correctly.
@@ -21,6 +28,7 @@ vcpkg_cmake_configure(
         -DLOGGER_BUILD_INTEGRATION_TESTS=OFF
         -DLOGGER_ENABLE_COVERAGE=OFF
         -DLOGGER_USE_THREAD_SYSTEM=OFF
+        ${FEATURE_OPTIONS}
 )
 
 vcpkg_cmake_install()
