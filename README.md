@@ -7,12 +7,12 @@ Private vcpkg registry for the kcenon C++20 ecosystem packages.
 | Package | Version | Description |
 |---------|---------|-------------|
 | kcenon-common-system | 0.2.0 | High-performance C++20 foundation library (header-only) |
-| kcenon-thread-system | 0.3.0 | Multithreading framework with lock-free queues |
-| kcenon-logger-system | 0.1.1 | Async logging with 4.34M msg/sec throughput |
+| kcenon-thread-system | 0.3.1 | Multithreading framework with lock-free queues |
+| kcenon-logger-system | 0.1.3 | Async logging with 4.34M msg/sec throughput |
 | kcenon-container-system | 0.1.0 | Thread-safe containers with messaging integration |
 | kcenon-monitoring-system | 0.1.0 | Metrics collection, distributed tracing, alerting |
 | kcenon-database-system | 0.1.0 | Core DAL with PostgreSQL, SQLite support |
-| kcenon-network-system | 0.1.0 | Async TCP/UDP, HTTP/1.1, WebSocket, TLS 1.3 |
+| kcenon-network-system | 0.1.1 | Async TCP/UDP, HTTP/1.1, WebSocket, TLS 1.3 |
 | kcenon-pacs-system | 0.1.0 | PACS implementation on kcenon ecosystem |
 
 ## Dependency Graph
