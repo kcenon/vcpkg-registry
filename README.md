@@ -53,12 +53,59 @@ Then install packages normally:
 vcpkg install kcenon-monitoring-system
 ```
 
-## Adding a New Port Version
+## Port Management Strategy
 
-1. Update port files in `ports/<port-name>/`
-2. Commit the port changes
-3. Run `vcpkg x-add-version --all` to update version database
-4. Commit version database changes
+This registry follows **Strategy B: Local + Registry Sync**, where each source
+repository maintains its own portfile locally and syncs to this registry on release.
+
+### How It Works
+
+```
+Source Repo (e.g., common_system)          vcpkg-registry
+┌─────────────────────────────┐            ┌──────────────────────┐
+│ vcpkg-ports/                │   sync     │ ports/               │
+│   kcenon-common-system/     │ ────────── │   kcenon-common-     │
+│     portfile.cmake          │  on release│   system/            │
+│     vcpkg.json              │            │     portfile.cmake   │
+└─────────────────────────────┘            │     vcpkg.json       │
+                                           └──────────────────────┘
+```
+
+### Benefits
+
+- **Atomic commits**: Source changes and portfile updates in a single PR
+- **CI validation**: Each repo validates its portfile independently
+- **Developer visibility**: Full packaging setup visible without switching repos
+- **Registry remains canonical**: Consumers always install from this registry
+
+### Local Portfile Locations
+
+Each source repository maintains its port definition at:
+
+```
+{repo}/vcpkg-ports/kcenon-{name}/
+  ├── portfile.cmake
+  └── vcpkg.json
+```
+
+### Updating a Port
+
+1. Make source changes in the system repository
+2. Update `vcpkg-ports/kcenon-{name}/portfile.cmake` and `vcpkg.json` if needed
+3. Commit both source and port changes together
+4. On tagged release, sync port files to this registry:
+   - Copy updated files to `ports/kcenon-{name}/`
+   - Update SHA512 hash in `portfile.cmake` to match the release archive
+   - Run `vcpkg x-add-version --all` to update the version database
+   - Commit version database changes
+
+### Adding a New Port Version (Registry Side)
+
+1. Copy port files from the source repo's `vcpkg-ports/` directory
+2. Update `SHA512` hash and version in `portfile.cmake`
+3. Commit the port changes
+4. Run `vcpkg x-add-version --all` to update version database
+5. Commit version database changes
 
 ## License
 
