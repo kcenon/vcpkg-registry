@@ -1,7 +1,7 @@
 {
   "name": "kcenon-monitoring-system",
-  "version": "0.1.0",
-  "port-version": 2,
+  "version-semver": "0.1.0",
+  "port-version": 1,
   "description": "High-performance C++20 monitoring system with metrics collection, distributed tracing, and container monitoring",
   "homepage": "https://github.com/kcenon/monitoring_system",
   "license": "BSD-3-Clause",
@@ -40,7 +40,7 @@
         },
         {
           "name": "protobuf",
-          "version>=": "3.21.12"
+          "version>=": "3.21.0"
         }
       ]
     }
