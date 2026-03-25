@@ -1,6 +1,11 @@
 {
   "versions": [
     {
+      "version-semver": "0.1.0",
+      "port-version": 5,
+      "git-tree": "placeholder-will-be-updated"
+    },
+    {
       "version": "0.1.0",
       "port-version": 4,
       "git-tree": "32d6a0eae6da32a650c18ef5713ad8db2dba1f89"
