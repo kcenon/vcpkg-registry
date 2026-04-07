@@ -27,6 +27,16 @@ vcpkg_cmake_config_fixup(
     CONFIG_PATH lib/cmake/thread_system
 )
 
+# In legacy/component build mode the config does not create a
+# thread_system::thread_system umbrella target.  Downstream projects
+# (monitoring_system) link against that canonical name, so inject the
+# alias when it is missing after the config has been installed.
+vcpkg_replace_string(
+    "${CURRENT_PACKAGES_DIR}/share/thread_system/thread_system-config.cmake"
+    "check_required_components(thread_system)"
+    "# Canonical umbrella alias (added by vcpkg portfile)\nif(TARGET thread_system::thread_base AND NOT TARGET thread_system::thread_system)\n    add_library(thread_system::thread_system ALIAS thread_system::thread_base)\nendif()\n\ncheck_required_components(thread_system)"
+)
+
 # Remove empty directories that cause vcpkg post-build validation errors
 file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/include/thread_system/interfaces")
 
