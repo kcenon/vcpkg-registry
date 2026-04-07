@@ -47,6 +47,19 @@ vcpkg_cmake_config_fixup(
     CONFIG_PATH lib/cmake/monitoring_system
 )
 
+# Patch config: ensure upstream targets referenced in monitoring_system-targets.cmake
+# are created before the targets file is included.  monitoring_system was built
+# against build-tree aliases (thread_system::thread_system, kcenon::common_system)
+# that do not exist as installed IMPORTED targets.
+set(_config "${CURRENT_PACKAGES_DIR}/share/monitoring_system/monitoring_system-config.cmake")
+file(READ "${_config}" _contents)
+string(REPLACE
+    "include(\"\${CMAKE_CURRENT_LIST_DIR}/monitoring_system-targets.cmake\")"
+    "# Create aliases for targets referenced by monitoring_system-targets.cmake\nif(TARGET thread_system::thread_base AND NOT TARGET thread_system::thread_system)\n  add_library(thread_system::thread_system INTERFACE IMPORTED)\n  set_target_properties(thread_system::thread_system PROPERTIES INTERFACE_LINK_LIBRARIES thread_system::thread_base)\nendif()\nif(TARGET common_system::common_system AND NOT TARGET kcenon::common_system)\n  add_library(kcenon::common_system INTERFACE IMPORTED)\n  set_target_properties(kcenon::common_system PROPERTIES INTERFACE_LINK_LIBRARIES common_system::common_system)\nendif()\n\ninclude(\"\${CMAKE_CURRENT_LIST_DIR}/monitoring_system-targets.cmake\")"
+    _contents "${_contents}"
+)
+file(WRITE "${_config}" "${_contents}")
+
 file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/include")
 file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/share")
 
