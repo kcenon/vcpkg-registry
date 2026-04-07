@@ -5,8 +5,8 @@
       "port-version": 0
     },
     "kcenon-thread-system": {
-      "baseline": "0.3.1",
-      "port-version": 0
+      "baseline": "0.3.2",
+      "port-version": 1
     },
     "kcenon-logger-system": {
       "baseline": "0.1.3",
