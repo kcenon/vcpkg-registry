@@ -65,11 +65,17 @@ if(TARGET common_system::common_system AND NOT TARGET kcenon::common_system)
 endif()
 ]=])
 
-# Inject the shim include into the config file, right before the targets include
+# Inject find_dependency calls and the shim into the config file,
+# right before the targets include.  Without the find_dependency calls
+# the transitive targets (thread_system, common_system) do not exist
+# when the shim runs, so the aliases are never created.
 vcpkg_replace_string(
     "${CURRENT_PACKAGES_DIR}/share/monitoring_system/monitoring_system-config.cmake"
     [[include("${CMAKE_CURRENT_LIST_DIR}/monitoring_system-targets.cmake")]]
-    [[include("${CMAKE_CURRENT_LIST_DIR}/monitoring_system-target-aliases.cmake")
+    [[include(CMakeFindDependencyMacro)
+find_dependency(common_system CONFIG)
+find_dependency(thread_system CONFIG)
+include("${CMAKE_CURRENT_LIST_DIR}/monitoring_system-target-aliases.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/monitoring_system-targets.cmake")]]
 )
 
