@@ -18,11 +18,11 @@
     },
     "kcenon-monitoring-system": {
       "baseline": "0.1.0",
-      "port-version": 3
+      "port-version": 4
     },
     "kcenon-database-system": {
-      "baseline": "0.1.0",
-      "port-version": 6
+      "baseline": "0.1.1",
+      "port-version": 1
     },
     "kcenon-network-system": {
       "baseline": "0.1.1",
