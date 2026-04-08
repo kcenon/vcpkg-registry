@@ -7,8 +7,6 @@ vcpkg_from_github(
     REF "v${VERSION}"
     SHA512 2d147a3eac787919842c0d74c80eaf560e761b90dd435ba2f8d7d9459bf2a79d3dd637d20abe7204ffc72b98e82e4c0a6384b9a20ef8282777da05fca994304d
     HEAD_REF main
-    PATCHES
-        fix-internal-header-include.patch
 )
 
 vcpkg_check_features(OUT_FEATURE_OPTIONS FEATURE_OPTIONS
@@ -32,6 +30,16 @@ vcpkg_cmake_configure(
 )
 
 vcpkg_cmake_install()
+
+# Install internal headers required by public headers.
+# Several installed headers (messaging_session.h, secure_session.h, network_system.h,
+# quic_session.h, network_system_bridge.h, network_config.h) reference headers from
+# src/internal/ which are not installed by CMake. Copy them to the install tree so
+# downstream consumers can compile against the package.
+file(COPY "${SOURCE_PATH}/src/internal/"
+    DESTINATION "${CURRENT_PACKAGES_DIR}/include/internal/"
+    FILES_MATCHING PATTERN "*.h" PATTERN "*.hpp" PATTERN "*.inl"
+)
 
 vcpkg_cmake_config_fixup(
     PACKAGE_NAME NetworkSystem
