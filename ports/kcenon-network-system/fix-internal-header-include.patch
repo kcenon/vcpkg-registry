@@ -1,0 +1,29 @@
+diff --git a/include/kcenon/network/detail/session/messaging_session.h b/include/kcenon/network/detail/session/messaging_session.h
+index 04b7266e..f09bac40 100644
+--- a/include/kcenon/network/detail/session/messaging_session.h
++++ b/include/kcenon/network/detail/session/messaging_session.h
+@@ -32,7 +32,11 @@
+ #include <asio.hpp>
+
+ #include "kcenon/network/interfaces/i_session.h"
+-#include "internal/tcp/tcp_socket.h"
++
++namespace kcenon::network::internal
++{
++	class tcp_socket;
++}
+
+ // Use nested namespace definition in C++17
+ namespace kcenon::network::session
+diff --git a/src/session/messaging_session.cpp b/src/session/messaging_session.cpp
+index 14213782..42a29915 100644
+--- a/src/session/messaging_session.cpp
++++ b/src/session/messaging_session.cpp
+@@ -6,6 +6,7 @@
+
+ #include <span>
+
++#include "internal/tcp/tcp_socket.h"
+ #include "internal/integration/logger_integration.h"
+ #include "kcenon/network/detail/metrics/network_metrics.h"
+
