@@ -41,6 +41,13 @@ file(COPY "${SOURCE_PATH}/src/internal/"
     FILES_MATCHING PATTERN "*.h" PATTERN "*.hpp" PATTERN "*.inl"
 )
 
+# Install network-core modular library headers required by internal headers.
+# src/internal/tcp/tcp_socket.h includes kcenon/network-core/interfaces/socket_observer.h
+file(COPY "${SOURCE_PATH}/network-core/include/"
+    DESTINATION "${CURRENT_PACKAGES_DIR}/include/"
+    FILES_MATCHING PATTERN "*.h" PATTERN "*.hpp"
+)
+
 vcpkg_cmake_config_fixup(
     PACKAGE_NAME NetworkSystem
     CONFIG_PATH lib/cmake/NetworkSystem
