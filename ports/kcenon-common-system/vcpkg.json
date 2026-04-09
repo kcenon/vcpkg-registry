@@ -15,5 +15,11 @@
       "name": "vcpkg-cmake-config",
       "host": true
     }
-  ]
+  ],
+  "features": {
+    "yaml": {
+      "description": "YAML configuration file support via yaml-cpp",
+      "dependencies": ["yaml-cpp"]
+    }
+  }
 }
