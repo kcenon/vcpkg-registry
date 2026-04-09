@@ -2,19 +2,19 @@
   "default": {
     "kcenon-common-system": {
       "baseline": "0.2.0",
-      "port-version": 0
+      "port-version": 1
     },
     "kcenon-thread-system": {
-      "baseline": "0.3.2",
+      "baseline": "0.3.1",
       "port-version": 2
     },
     "kcenon-logger-system": {
       "baseline": "0.1.3",
-      "port-version": 5
+      "port-version": 6
     },
     "kcenon-container-system": {
       "baseline": "0.1.0",
-      "port-version": 4
+      "port-version": 5
     },
     "kcenon-monitoring-system": {
       "baseline": "0.1.0",
@@ -26,11 +26,11 @@
     },
     "kcenon-network-system": {
       "baseline": "0.1.1",
-      "port-version": 6
+      "port-version": 7
     },
     "kcenon-pacs-system": {
       "baseline": "0.1.0",
-      "port-version": 8
+      "port-version": 9
     }
   }
 }
