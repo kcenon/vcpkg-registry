@@ -58,6 +58,7 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           echo "SDKROOT=$(xcrun --sdk macosx --show-sdk-path)" >> $GITHUB_ENV
+          echo "MACOSX_DEPLOYMENT_TARGET=$(sw_vers -productVersion)" >> $GITHUB_ENV
 
       - name: Set up vcpkg
         uses: lukka/run-vcpkg@v11
