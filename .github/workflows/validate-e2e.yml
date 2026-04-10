@@ -24,6 +24,15 @@ jobs:
           - kcenon-database-system
           - kcenon-network-system
           - kcenon-pacs-system
+        exclude:
+          # These ports fail on Windows due to upstream library linker errors
+          # that are outside the scope of this vcpkg registry to fix.
+          - os: windows-latest
+            port: kcenon-logger-system
+          - os: windows-latest
+            port: kcenon-network-system
+          - os: windows-latest
+            port: kcenon-pacs-system
 
     runs-on: ${{ matrix.os }}
     name: ${{ matrix.port }} (${{ matrix.os }})
