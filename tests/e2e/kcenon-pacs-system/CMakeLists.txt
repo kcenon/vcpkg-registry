@@ -8,3 +8,6 @@ find_package(pacs_system CONFIG REQUIRED)
 
 add_executable(main main.cpp)
 target_link_libraries(main PRIVATE pacs_system::core)
+
+enable_testing()
+add_test(NAME e2e_pacs_system COMMAND main)

@@ -8,3 +8,6 @@ find_package(container_system CONFIG REQUIRED)
 
 add_executable(main main.cpp)
 target_link_libraries(main PRIVATE container_system::container)
+
+enable_testing()
+add_test(NAME e2e_container_system COMMAND main)

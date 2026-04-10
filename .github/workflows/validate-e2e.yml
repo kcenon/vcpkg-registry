@@ -27,6 +27,7 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     name: ${{ matrix.port }} (${{ matrix.os }})
+    timeout-minutes: 120
 
     steps:
       - uses: actions/checkout@v4
@@ -36,6 +37,7 @@ jobs:
       - name: Set up vcpkg
         uses: lukka/run-vcpkg@v11
         with:
+          # vcpkg 2025.03.19 release
           vcpkgGitCommitId: "b02e341c927f16d991edbd915d8ea43eac52096c"
 
       - name: Export GitHub Actions cache variables

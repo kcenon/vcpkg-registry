@@ -8,3 +8,6 @@ find_package(monitoring_system CONFIG REQUIRED)
 
 add_executable(main main.cpp)
 target_link_libraries(main PRIVATE monitoring_system::monitoring_system)
+
+enable_testing()
+add_test(NAME e2e_monitoring_system COMMAND main)

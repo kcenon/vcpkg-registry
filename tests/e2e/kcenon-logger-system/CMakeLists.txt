@@ -8,3 +8,6 @@ find_package(logger_system CONFIG REQUIRED)
 
 add_executable(main main.cpp)
 target_link_libraries(main PRIVATE logger_system::logger)
+
+enable_testing()
+add_test(NAME e2e_logger_system COMMAND main)
