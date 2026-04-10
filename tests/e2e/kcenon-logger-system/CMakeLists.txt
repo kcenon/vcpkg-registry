@@ -4,10 +4,10 @@ project(e2e_logger_system CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(logger_system CONFIG REQUIRED)
+find_package(LoggerSystem CONFIG REQUIRED)
 
 add_executable(main main.cpp)
-target_link_libraries(main PRIVATE logger_system::logger)
+target_link_libraries(main PRIVATE LoggerSystem::logger)
 
 enable_testing()
 add_test(NAME e2e_logger_system COMMAND main)
