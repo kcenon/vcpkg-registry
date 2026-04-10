@@ -133,7 +133,10 @@ For each port the CI pipeline performs four steps:
 | macOS (latest) | `arm64-osx` |
 | Windows (latest) | `x64-windows` |
 
-This produces **24 jobs** (8 ports x 3 platforms) per run.
+This produces **21 jobs** per run (8 ports x 3 platforms, minus 3 Windows exclusions).
+Three ports -- `kcenon-logger-system`, `kcenon-network-system`, and `kcenon-pacs-system`
+-- are excluded from the Windows matrix due to upstream library linker errors that are
+outside the scope of this registry to fix.
 
 ### Test Projects
 
@@ -164,6 +167,13 @@ to verify both header availability and linkage.
 To validate a single port locally (requires vcpkg installed):
 
 ```bash
+# Linux: install system dependencies required by some ports (e.g., pacs-system via ICU)
+sudo apt-get install -y autoconf-archive
+
+# macOS: install system dependencies required by ICU and OpenSSL builds
+brew install autoconf automake libtool
+export SDKROOT=$(xcrun --sdk macosx --show-sdk-path)
+
 # Install the port with overlay-ports
 vcpkg install kcenon-common-system:x64-linux \
   --overlay-ports=./ports
@@ -171,12 +181,17 @@ vcpkg install kcenon-common-system:x64-linux \
 # Configure and build the test project
 cmake -B tests/e2e/kcenon-common-system/build \
   -S tests/e2e/kcenon-common-system \
-  -DCMAKE_TOOLCHAIN_FILE=$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake
+  -DCMAKE_TOOLCHAIN_FILE=$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake \
+  -DVCPKG_TARGET_TRIPLET=x64-linux \
+  -DVCPKG_INSTALLED_DIR=tests/e2e/vcpkg_installed \
+  -DVCPKG_MANIFEST_MODE=OFF
 
 cmake --build tests/e2e/kcenon-common-system/build --config Release
 
-# Run the test binary
-./tests/e2e/kcenon-common-system/build/main
+# Run the test via ctest
+ctest --test-dir tests/e2e/kcenon-common-system/build \
+  --build-config Release \
+  --output-on-failure
 ```
 
 ## License
