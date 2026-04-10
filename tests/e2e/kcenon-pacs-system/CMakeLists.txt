@@ -11,7 +11,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # succeeding, so we verify the install by locating the vcpkg include path
 # directly instead of relying on the CMake package machinery.
 find_path(PACS_SYSTEM_INCLUDE_DIR
-    NAMES kcenon/pacs/core/dicom_tag.h
+    NAMES pacs/core/dicom_tag.hpp
     HINTS "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include"
     REQUIRED
 )

@@ -2,7 +2,8 @@
 #include <iostream>
 
 // Verify installation and linking against pacs_system::core.
-#include <kcenon/pacs/core/dicom_tag.h>
+// v0.1.0 installs headers under pacs/ (no kcenon/ prefix) with .hpp extension.
+#include <pacs/core/dicom_tag.hpp>
 
 int main()
 {
