@@ -107,6 +107,78 @@ Each source repository maintains its port definition at:
 4. Run `vcpkg x-add-version --all` to update version database
 5. Commit version database changes
 
+## End-to-End Validation
+
+Every push and pull request to `main` triggers an end-to-end validation
+workflow that verifies all 8 ports can be installed, discovered via CMake, and
+linked into a consumer application.
+
+### What Is Validated
+
+For each port the CI pipeline performs four steps:
+
+1. **vcpkg install** -- installs the port using overlay-ports from this registry
+2. **CMake configure** -- runs `find_package(<port> CONFIG REQUIRED)` in a
+   minimal C++20 test project
+3. **CMake build** -- compiles and links the test project against the installed
+   port
+4. **Run binary** -- executes the resulting binary to confirm headers and
+   symbols resolve at runtime
+
+### Platform Matrix
+
+| Platform | Triplet |
+|----------|---------|
+| Ubuntu (latest) | `x64-linux` |
+| macOS (latest) | `arm64-osx` |
+| Windows (latest) | `x64-windows` |
+
+This produces **24 jobs** (8 ports x 3 platforms) per run.
+
+### Test Projects
+
+Each port has a minimal test project under `tests/e2e/<port-name>/`:
+
+```
+tests/e2e/
+  kcenon-common-system/
+    CMakeLists.txt
+    main.cpp
+  kcenon-thread-system/
+    ...
+  (one directory per port)
+```
+
+Each `main.cpp` includes a representative header and exercises a basic API call
+to verify both header availability and linkage.
+
+### CI Workflows
+
+| Workflow | File | Purpose |
+|----------|------|---------|
+| Validate Registry | `.github/workflows/validate-registry.yml` | Port structure, version database, git-tree integrity |
+| E2E Port Validation | `.github/workflows/validate-e2e.yml` | Install, find_package, link, and run for all ports |
+
+### Running Locally
+
+To validate a single port locally (requires vcpkg installed):
+
+```bash
+# Install the port with overlay-ports
+vcpkg install kcenon-common-system:x64-linux \
+  --overlay-ports=./ports
+
+# Configure and build the test project
+cmake -B tests/e2e/kcenon-common-system/build \
+  -S tests/e2e/kcenon-common-system \
+  -DCMAKE_TOOLCHAIN_FILE=$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake
+
+cmake --build tests/e2e/kcenon-common-system/build --config Release
+
+# Run the test binary
+./tests/e2e/kcenon-common-system/build/main
+```
+
 ## License
 
 BSD-3-Clause
