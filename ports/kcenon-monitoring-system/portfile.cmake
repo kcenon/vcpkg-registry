@@ -71,16 +71,12 @@ endif()
 # when the shim runs, so the aliases are never created.
 vcpkg_replace_string(
     "${CURRENT_PACKAGES_DIR}/share/monitoring_system/monitoring_system-config.cmake"
-    [[if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/monitoring_system-targets.cmake")
-    include("${CMAKE_CURRENT_LIST_DIR}/monitoring_system-targets.cmake")
-endif()]]
+    [[include("${CMAKE_CURRENT_LIST_DIR}/monitoring_system-targets.cmake")]]
     [[include(CMakeFindDependencyMacro)
 find_dependency(common_system CONFIG)
 find_dependency(thread_system CONFIG)
 include("${CMAKE_CURRENT_LIST_DIR}/monitoring_system-target-aliases.cmake")
-if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/monitoring_system-targets.cmake")
-    include("${CMAKE_CURRENT_LIST_DIR}/monitoring_system-targets.cmake")
-endif()]]
+include("${CMAKE_CURRENT_LIST_DIR}/monitoring_system-targets.cmake")]]
 )
 
 file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/include")
