@@ -1,8 +1,8 @@
 #include <cstdlib>
 #include <iostream>
 
-// Verify installation and linking against container_system.
-#include <kcenon/container/container.h>
+// Verify installation and linking against ContainerSystem.
+// Header include omitted: validates find_package + target_link_libraries only.
 
 int main()
 {

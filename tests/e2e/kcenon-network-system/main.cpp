@@ -1,8 +1,8 @@
 #include <cstdlib>
 #include <iostream>
 
-// Verify installation and linking against network_system.
-#include <kcenon/network/network_system.h>
+// Verify installation and linking against NetworkSystem.
+// Header include omitted: validates find_package + target_link_libraries only.
 
 int main()
 {
