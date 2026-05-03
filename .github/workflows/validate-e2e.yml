@@ -5,9 +5,12 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  schedule:
+    - cron: '17 3 * * *'
 
 env:
-  VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
+  VCPKG_BINARY_SOURCES: >-
+    ${{ github.event_name == 'schedule' && 'clear' || 'clear;x-gha,readwrite' }}
 
 jobs:
   e2e-test:
