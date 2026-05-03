@@ -6,9 +6,23 @@ on:
   pull_request:
     branches: [main]
   schedule:
+    # Daily 03:17 UTC fresh-download run.
+    # Forces every install to re-download the GitHub release archive and
+    # re-verify SHA512 against the value in portfile.cmake. Push/PR runs
+    # keep the GHA binary cache for fast feedback; scheduled runs disable
+    # it so SHA mismatches surface within 24 hours of introduction.
+    #
+    # Background: kcenon/common_system#674 (parent EPIC) and
+    # kcenon/vcpkg-registry#87 (the audit that revealed all 8 ports had
+    # silent SHA512 mismatches because cache hits skip SHA verification).
+    # See kcenon/vcpkg-registry#93 for the no-cache mode rationale.
     - cron: '17 3 * * *'
 
 env:
+  # Conditional binary-source policy:
+  #   schedule -> 'clear'                 (no cache; forces SHA re-verify)
+  #   push/PR  -> 'clear;x-gha,readwrite' (GHA cache; fast feedback)
+  # Required by kcenon/vcpkg-registry#93 (parent: kcenon/common_system#674).
   VCPKG_BINARY_SOURCES: >-
     ${{ github.event_name == 'schedule' && 'clear' || 'clear;x-gha,readwrite' }}
 
