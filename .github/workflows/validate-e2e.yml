@@ -17,14 +17,18 @@ on:
     # silent SHA512 mismatches because cache hits skip SHA verification).
     # See kcenon/vcpkg-registry#93 for the no-cache mode rationale.
     - cron: '17 3 * * *'
+  # Manual dispatch reuses the schedule policy (cold cache) so AC2 of
+  # kcenon/vcpkg-registry#97 can be exercised without waiting 24 hours.
+  workflow_dispatch:
 
 env:
   # Conditional binary-source policy:
-  #   schedule -> 'clear'                 (no cache; forces SHA re-verify)
-  #   push/PR  -> 'clear;x-gha,readwrite' (GHA cache; fast feedback)
-  # Required by kcenon/vcpkg-registry#93 (parent: kcenon/common_system#674).
+  #   schedule, workflow_dispatch -> 'clear'                 (no cache; forces SHA re-verify)
+  #   push/PR                     -> 'clear;x-gha,readwrite' (GHA cache; fast feedback)
+  # Required by kcenon/vcpkg-registry#93 (parent: kcenon/common_system#674);
+  # workflow_dispatch branch added for kcenon/vcpkg-registry#97 (AC2).
   VCPKG_BINARY_SOURCES: >-
-    ${{ github.event_name == 'schedule' && 'clear' || 'clear;x-gha,readwrite' }}
+    ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && 'clear' || 'clear;x-gha,readwrite' }}
 
 jobs:
   e2e-test:
