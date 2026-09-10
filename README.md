@@ -4,16 +4,25 @@ Private vcpkg registry for the kcenon C++20 ecosystem packages.
 
 ## Available Ports
 
-| Package | Version | Description |
-|---------|---------|-------------|
-| kcenon-common-system | 0.2.0 | High-performance C++20 foundation library (header-only) |
-| kcenon-thread-system | 0.3.1 | Multithreading framework with lock-free queues |
-| kcenon-logger-system | 0.1.3 | Async logging with 4.34M msg/sec throughput |
-| kcenon-container-system | 0.1.0 | Thread-safe containers with messaging integration |
-| kcenon-monitoring-system | 0.1.0 | Metrics collection, distributed tracing, alerting |
-| kcenon-database-system | 0.1.0 | Core DAL with PostgreSQL, SQLite support |
-| kcenon-network-system | 0.1.1 | Async TCP/UDP, HTTP/1.1, WebSocket, TLS 1.3 |
-| kcenon-pacs-system | 0.1.0 | PACS implementation on kcenon ecosystem |
+Generated with `python3 scripts/port_table.py` from `versions/baseline.json` and
+`ports/*/vcpkg.json`. Re-run it after every version or port-version change.
+A consumer resolves `<version>#<port-version>`, for example `0.3.2#2`.
+
+| Package | Version | Port version | Description |
+|---------|---------|--------------|-------------|
+| kcenon-common-system | 0.2.0 | 3 | High-performance C++20 foundation library providing Result<T> pattern, interfaces, and common utilities |
+| kcenon-thread-system | 0.3.2 | 2 | High-performance C++20 multithreading framework with lock-free queues and adaptive optimization |
+| kcenon-logger-system | 0.1.3 | 10 | High-performance C++20 async logging framework with 4.34M msg/sec throughput, 148ns latency, and modular architecture |
+| kcenon-container-system | 0.1.0 | 8 | Advanced C++20 Container System with Thread-Safe Operations and Messaging Integration |
+| kcenon-monitoring-system | 0.1.0 | 8 | High-performance C++20 monitoring system with metrics collection, distributed tracing, and container monitoring |
+| kcenon-database-system | 0.1.1 | 4 | Pure, lightweight C++20 Core DAL library with unified access to PostgreSQL, SQLite, MongoDB, and Redis |
+| kcenon-network-system | 0.1.1 | 10 | Modern C++20 async network library with TCP/UDP, HTTP/1.1, WebSocket, and TLS 1.3 support |
+| kcenon-pacs-system | 0.1.0 | 11 | Modern C++20 PACS (Picture Archiving and Communication System) built on the kcenon ecosystem |
+
+Descriptions are copied from each port's `vcpkg.json`, which is synced from the
+source repository. Performance figures in them were measured there, not in this
+registry: the logger-system figures come from
+[logger_system docs/BENCHMARKS.md](https://github.com/kcenon/logger_system/blob/main/docs/BENCHMARKS.md).
 
 ## Dependency Graph
 
@@ -196,4 +205,4 @@ ctest --test-dir tests/e2e/kcenon-common-system/build \
 
 ## License
 
-BSD-3-Clause
+[BSD 3-Clause](LICENSE)
