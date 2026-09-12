@@ -11,7 +11,7 @@ A consumer resolves `<version>#<port-version>`, for example `0.3.2#2`.
 | Package | Version | Port version | Description |
 |---------|---------|--------------|-------------|
 | kcenon-common-system | 0.2.0 | 3 | High-performance C++20 foundation library providing Result<T> pattern, interfaces, and common utilities |
-| kcenon-thread-system | 0.3.2 | 2 | High-performance C++20 multithreading framework with lock-free queues and adaptive optimization |
+| kcenon-thread-system | 1.0.0 | 0 | High-performance C++20 multithreading framework with lock-free queues and adaptive optimization |
 | kcenon-logger-system | 0.1.3 | 10 | High-performance C++20 async logging framework with 4.34M msg/sec throughput, 148ns latency, and modular architecture |
 | kcenon-container-system | 0.1.0 | 8 | Advanced C++20 Container System with Thread-Safe Operations and Messaging Integration |
 | kcenon-monitoring-system | 0.1.0 | 8 | High-performance C++20 monitoring system with metrics collection, distributed tracing, and container monitoring |
