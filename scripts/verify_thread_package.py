@@ -55,7 +55,10 @@ def main():
         snapshots = []
         for entry in commands:
             command = entry.get("arguments") or shlex.split(entry["command"])
-            if any("CMakeFiles/thread_system.dir/" in arg.replace("\\", "/") for arg in command):
+            # CMake records a normalized output path. Inspect it before POSIX
+            # tokenization, which treats unquoted MSVC backslashes as escapes.
+            output = entry.get("output", "") or " ".join(entry.get("arguments") or [entry["command"]])
+            if "CMakeFiles/thread_system.dir/" in output.replace("\\", "/"):
                 snapshots.append(definitions(command))
         if not snapshots or any(s != snapshots[0] for s in snapshots):
             raise RuntimeError("Missing or inconsistent archive feature definitions")
