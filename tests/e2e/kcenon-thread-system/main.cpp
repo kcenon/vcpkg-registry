@@ -1,14 +1,13 @@
-#include <cstdlib>
+#include "thread_abi_expected.h"
 #include <iostream>
-#include <kcenon/thread/thread_pool.h>
+#include <memory>
+#include <kcenon/thread/core/thread_pool.h>
+#include <kcenon/thread/core/thread_worker.h>
+#include "worker_contract.h"
 
 int main()
 {
-    kcenon::thread::thread_pool pool;
-    // A newly constructed pool has a queue and no workers. Starting it before
-    // adding a worker is invalid; exercise the installed archive via queries.
-    if (!pool.get_job_queue()) return EXIT_FAILURE;
-    if (pool.get_active_worker_count() != 0) return EXIT_FAILURE;
-    std::cout << "thread_system e2e: OK" << std::endl;
-    return EXIT_SUCCESS;
+    std::cout << "Installed Thread worker size="
+              << sizeof(kcenon::thread::thread_worker) << std::endl;
+    return run_common_worker_contract();
 }
