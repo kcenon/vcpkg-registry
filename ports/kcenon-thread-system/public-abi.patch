@@ -1,0 +1,119 @@
+diff --git a/cmake/thread_system.pc.in b/cmake/thread_system.pc.in
+index 9e9274f6..88c7123a 100644
+--- a/cmake/thread_system.pc.in
++++ b/cmake/thread_system.pc.in
+@@ -17,11 +17,7 @@ URL: @PROJECT_HOMEPAGE_URL@
+ # Libraries provided by thread_system as specified in T2.2
+ Libs: -L${libdir} -lthread_system
+ # Additional system libraries required
+-Libs.private: -pthread @SIMDUTF_LIBRARIES@
++Libs.private: @PKG_CONFIG_THREAD_LIBS@ @SIMDUTF_LIBRARIES@
+ 
+ # Include paths
+-Cflags: -I${includedir} -I${includedir}/thread_system
+-
+-# Feature flags that may be needed by client projects
+-# These are set based on the build configuration
+-@PKG_CONFIG_FEATURE_FLAGS@
+\ No newline at end of file
++Cflags: -I${includedir} -I${includedir}/thread_system@PKG_CONFIG_FEATURE_FLAGS@
+diff --git a/cmake/thread_system_install.cmake b/cmake/thread_system_install.cmake
+index abb19918..ae4b3d35 100644
+--- a/cmake/thread_system_install.cmake
++++ b/cmake/thread_system_install.cmake
+@@ -62,6 +62,34 @@ endfunction()
+ ##################################################
+ # Install libraries
+ ##################################################
++# Backport the public ABI export contract without changing feature selection in
++# the v0.3.2 archive. Read the definitions actually used to compile this directory.
++function(export_thread_system_public_abi)
++  get_directory_property(build_definitions COMPILE_DEFINITIONS)
++  set(public_definitions "")
++  foreach(definition IN LISTS build_definitions)
++    if(definition MATCHES "^(USE_STD_[A-Z_]+|HAS_STD_(ATOMIC_WAIT|LATCH)|KCENON_HAS_COMMON_(CONCEPTS|EXECUTOR)|THREAD_HAS_COMMON_CONCEPTS|BUILD_WITH_COMMON_SYSTEM|THREAD_WORK_STEALING_ENABLED)(=.*)?$")
++      list(APPEND public_definitions "${definition}")
++    endif()
++  endforeach()
++  list(REMOVE_DUPLICATES public_definitions)
++  foreach(target IN ITEMS thread_system thread_base utilities interfaces thread_pool typed_thread_pool lockfree)
++    if(TARGET ${target})
++      get_target_property(aliased_target ${target} ALIASED_TARGET)
++      if(NOT aliased_target)
++        get_target_property(target_type ${target} TYPE)
++        if(target_type STREQUAL "INTERFACE_LIBRARY")
++          set(visibility INTERFACE)
++        else()
++          set(visibility PUBLIC)
++        endif()
++        target_compile_definitions(${target} ${visibility} ${public_definitions})
++        target_compile_features(${target} ${visibility} cxx_std_20)
++      endif()
++    endif()
++  endforeach()
++endfunction()
++
+ function(install_thread_system_libraries)
+   if(USE_LEGACY_BUILD)
+     # Legacy targets
+@@ -143,15 +171,21 @@ endfunction()
+ # Install pkg-config file
+ ##################################################
+ function(install_pkgconfig_file)
+-  set(PKG_CONFIG_FEATURE_FLAGS "")
+-  if(USE_STD_FORMAT)
+-    set(PKG_CONFIG_FEATURE_FLAGS "${PKG_CONFIG_FEATURE_FLAGS} -DUSE_STD_FORMAT")
++  if(TARGET thread_system)
++    set(abi_target thread_system)
++  else()
++    set(abi_target thread_base)
+   endif()
+-  if(USE_STD_JTHREAD)
+-    set(PKG_CONFIG_FEATURE_FLAGS "${PKG_CONFIG_FEATURE_FLAGS} -DUSE_STD_JTHREAD")
++  get_target_property(public_definitions ${abi_target} INTERFACE_COMPILE_DEFINITIONS)
++  set(PKG_CONFIG_FEATURE_FLAGS "")
++  if(public_definitions)
++    foreach(definition IN LISTS public_definitions)
++      string(APPEND PKG_CONFIG_FEATURE_FLAGS " -D${definition}")
++    endforeach()
+   endif()
+-  if(USE_STD_CHRONO_CURRENT_ZONE)
+-    set(PKG_CONFIG_FEATURE_FLAGS "${PKG_CONFIG_FEATURE_FLAGS} -DUSE_STD_CHRONO_CURRENT_ZONE")
++  set(PKG_CONFIG_THREAD_LIBS "-pthread")
++  if(MSVC)
++    set(PKG_CONFIG_THREAD_LIBS "")
+   endif()
+ 
+   # Get simdutf libraries for pkg-config
+@@ -217,6 +251,7 @@ endfunction()
+ # Main installation setup
+ ##################################################
+ function(setup_thread_system_install)
++  export_thread_system_public_abi()
+   install_thread_system_headers()
+   install_thread_system_libraries()
+   install_cmake_config_files()
+diff --git a/include/kcenon/thread/core/sync_primitives.h b/include/kcenon/thread/core/sync_primitives.h
+index 8d49f363..fb5452d7 100644
+--- a/include/kcenon/thread/core/sync_primitives.h
++++ b/include/kcenon/thread/core/sync_primitives.h
+@@ -15,6 +15,7 @@
+ #include <atomic>
+ #include <chrono>
+ #include <memory>
++#include <shared_mutex>
+ 
+ namespace kcenon::thread::sync {
+     /**
+diff --git a/include/kcenon/thread/scaling/autoscaler.h b/include/kcenon/thread/scaling/autoscaler.h
+index b801946c..d6498742 100644
+--- a/include/kcenon/thread/scaling/autoscaler.h
++++ b/include/kcenon/thread/scaling/autoscaler.h
+@@ -23,6 +23,7 @@
+ #include <memory>
+ #include <mutex>
+ #include <thread>
++#include <vector>
+ 
+ namespace kcenon::thread
+ {

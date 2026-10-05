@@ -68,7 +68,7 @@ baseline. For the tested Windows setup, pin the tool checkout to
 use builtin baseline `b02e341c927f16d991edbd915d8ea43eac52096c`.
 The older tool checkout at that baseline requests an expired MSYS2 runtime
 archive; changing only a manifest baseline does not replace those helpers.
-The E2E workflow uses an external manifest with a Git registry baseline,
+The E2E workflow uses an external manifest with a Git registry baseline and reference set to the tested commit,
 fresh downloads, and binary caching disabled on all 21 existing matrix jobs.
 
 ## Port Management Strategy
@@ -135,7 +135,7 @@ linked into a consumer application.
 
 For each port the CI pipeline performs four steps:
 
-1. **vcpkg install** -- installs the port using overlay-ports from this registry
+1. **vcpkg install** -- installs through the remote Git registry at the tested commit
 2. **CMake configure** -- runs `find_package(<port> CONFIG REQUIRED)` in a
    minimal C++20 test project
 3. **CMake build** -- compiles and links the test project against the installed
@@ -173,6 +173,24 @@ tests/e2e/
 Each `main.cpp` includes a representative header and exercises a basic API call
 to verify both header availability and linkage.
 
+Thread additionally compares exported feature macros with the actual archive's
+`compile_commands.json`. Its CMake and pkg-config consumers run the installed
+worker enqueue/start/stop contract from common_system #751 (pinned commit
+`4aa24d2650c1d3d8446f7e9f681824bec12b5112`). Linux/macOS consumers enable
+AddressSanitizer. Windows first tests the regular package, then adds an
+`x64-windows-asan` install with both the archive and consumers instrumented.
+This preserves MSVC's required STL annotation consistency without disabling
+annotations. The extra profile verifies ASan flags in every archive translation
+unit. Deliberately reversing `USE_STD_JTHREAD` must fail compilation
+with the expected ABI mismatch diagnostic through both build interfaces.
+The regular production archive retains its normal vcpkg instrumentation; the Thread
+source repository separately tests instrumented libraries with jthread ON/OFF.
+
+Thread 0.3.2#3 backports public CMake/pkg-config ABI definitions and two missing
+standard includes to the unchanged v0.3.2 archive. It preserves feature selection,
+existing CMake compatibility, and all historical version entries. The undeployed
+v1.0.0 archive is unchanged and does not contain this ABI repair.
+
 ### CI Workflows
 
 | Workflow | File | Purpose |
@@ -192,25 +210,34 @@ sudo apt-get install -y autoconf-archive
 brew install autoconf automake libtool
 export SDKROOT=$(xcrun --sdk macosx --show-sdk-path)
 
-# Install the port with overlay-ports
-vcpkg install kcenon-common-system:x64-linux \
-  --overlay-ports=./ports
+# Use a pushed registry commit and the pinned tool checkout described above.
+export PORT=kcenon-common-system
+export REGISTRY_COMMIT=$(git rev-parse HEAD)
+export VCPKG_BUILTIN_BASELINE=b02e341c927f16d991edbd915d8ea43eac52096c
+export VCPKG_BINARY_SOURCES=clear
+export VCPKG_DOWNLOADS=$(mktemp -d)
+consumer=$(mktemp -d)/consumer
+python3 scripts/create_e2e_consumer.py "$consumer"
+"$VCPKG_ROOT/vcpkg" install --x-manifest-root="$consumer" \
+  --triplet=x64-linux --x-install-root="$consumer/vcpkg_installed"
 
-# Configure and build the test project
-cmake -B tests/e2e/kcenon-common-system/build \
-  -S tests/e2e/kcenon-common-system \
-  -DCMAKE_TOOLCHAIN_FILE=$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake \
+cmake -B "$consumer/build" -S "$consumer" \
+  -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" \
   -DVCPKG_TARGET_TRIPLET=x64-linux \
-  -DVCPKG_INSTALLED_DIR=tests/e2e/vcpkg_installed \
-  -DVCPKG_MANIFEST_MODE=OFF
-
-cmake --build tests/e2e/kcenon-common-system/build --config Release
-
-# Run the test via ctest
-ctest --test-dir tests/e2e/kcenon-common-system/build \
-  --build-config Release \
-  --output-on-failure
+  -DVCPKG_INSTALLED_DIR="$consumer/vcpkg_installed"
+cmake --build "$consumer/build" --config Release
+ctest --test-dir "$consumer/build" --build-config Release \
+  --output-on-failure --no-tests=error
 ```
+
+For Thread, set `COMMON_CONTRACT` to `scripts/ecosystem_build.py` in a checkout
+of the pinned common_system commit above before creating the consumer. After
+installation and before configuring CMake, run
+`python3 scripts/verify_thread_package.py --prepare --consumer "$consumer" --vcpkg "$VCPKG_ROOT" --triplet x64-linux`.
+After CTest passes, run the same command without `--prepare` to check pkg-config
+and both negative controls. Use the platform triplet in the matrix above;
+Windows also needs an MSVC developer shell and pkgconf (the workflow pins its
+installer and checksum).
 
 ## License
 

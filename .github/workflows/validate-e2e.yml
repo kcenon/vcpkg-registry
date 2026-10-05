@@ -65,16 +65,43 @@ jobs:
           fetch-depth: 0
           ref: ${{ env.REGISTRY_COMMIT }}
 
+      - name: Check out shared installed-worker contract
+        if: matrix.port == 'kcenon-thread-system'
+        uses: actions/checkout@v4
+        with:
+          repository: kcenon/common_system
+          ref: 4aa24d2650c1d3d8446f7e9f681824bec12b5112
+          path: common-contract
+
       - name: Install system dependencies (Linux)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y autoconf-archive
+          sudo apt-get install -y autoconf-archive pkg-config
 
       - name: Install system dependencies (macOS)
         if: runner.os == 'macOS'
         run: |
-          brew install autoconf automake libtool autoconf-archive
+          brew install autoconf automake libtool autoconf-archive pkgconf
+
+      - uses: ilammy/msvc-dev-cmd@v1
+        if: runner.os == 'Windows' && matrix.port == 'kcenon-thread-system'
+
+      - name: Install pkgconf (Windows Thread consumer)
+        if: runner.os == 'Windows' && matrix.port == 'kcenon-thread-system'
+        shell: pwsh
+        run: |
+          $installer = Join-Path $env:RUNNER_TEMP 'pkgconf.msi'
+          $destination = Join-Path $env:RUNNER_TEMP 'pkgconf'
+          Invoke-WebRequest 'https://github.com/pkgconf/pkgconf/releases/download/pkgconf-3.0.7/pkgconf-x64-3.0.7.msi' -OutFile $installer
+          if ((Get-FileHash $installer -Algorithm SHA256).Hash -ne '7a316dba4a4498ea952b746c82deed41c597657095a0f776b75654191b45ae44') {
+            throw 'pkgconf SHA256 mismatch'
+          }
+          $process = Start-Process msiexec.exe -Wait -PassThru -ArgumentList @('/a', $installer, '/qn', "TARGETDIR=$destination")
+          if ($process.ExitCode -ne 0) { throw "pkgconf extraction failed: $($process.ExitCode)" }
+          $program = Get-ChildItem $destination -Filter pkgconf.exe -Recurse | Select-Object -First 1
+          if (-not $program) { throw 'pkgconf.exe not found' }
+          "PKG_CONFIG=$($program.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: Set macOS SDK environment
         if: runner.os == 'macOS'
@@ -116,6 +143,7 @@ jobs:
         shell: bash
         env:
           PORT: ${{ matrix.port }}
+          COMMON_CONTRACT: ${{ github.workspace }}/common-contract/scripts/ecosystem_build.py
         run: |
           python scripts/create_e2e_consumer.py "$RUNNER_TEMP/registry-consumer"
           echo "CONSUMER_ROOT=$RUNNER_TEMP/registry-consumer" >> "$GITHUB_ENV"
@@ -128,6 +156,14 @@ jobs:
             --x-manifest-root="$CONSUMER_ROOT" \
             --triplet="${{ steps.triplet.outputs.value }}" \
             --x-install-root="$CONSUMER_ROOT/vcpkg_installed"
+
+      - name: Record actual Thread archive ABI flags
+        if: matrix.port == 'kcenon-thread-system'
+        shell: bash
+        run: |
+          python scripts/verify_thread_package.py --prepare \
+            --consumer "$CONSUMER_ROOT" --vcpkg "$VCPKG_ROOT" \
+            --triplet '${{ steps.triplet.outputs.value }}'
 
       - name: Configure CMake test project
         shell: bash
@@ -152,6 +188,44 @@ jobs:
             --build-config Release \
             --output-on-failure --no-tests=error
 
+      - name: Verify Thread pkg-config and reject ABI mismatches
+        if: matrix.port == 'kcenon-thread-system'
+        shell: bash
+        run: |
+          python scripts/verify_thread_package.py \
+            --consumer "$CONSUMER_ROOT" --vcpkg "$VCPKG_ROOT" \
+            --triplet '${{ steps.triplet.outputs.value }}'
+
+      - name: Verify Windows Thread ASan archive and consumers
+        if: runner.os == 'Windows' && matrix.port == 'kcenon-thread-system'
+        shell: bash
+        env:
+          PORT: kcenon-thread-system
+          COMMON_CONTRACT: ${{ github.workspace }}/common-contract/scripts/ecosystem_build.py
+        run: |
+          # MSVC detects incompatible STL annotations when only the consumer
+          # has ASan. Build the same Git-registry package with ASan as well.
+          CONSUMER_ROOT="$RUNNER_TEMP/registry-consumer-asan"
+          export VCPKG_DOWNLOADS="$RUNNER_TEMP/fresh-downloads-asan"
+          python scripts/create_e2e_consumer.py "$CONSUMER_ROOT"
+          "$VCPKG_ROOT/vcpkg" install --x-manifest-root="$CONSUMER_ROOT" \
+            --triplet=x64-windows-asan --overlay-triplets="$GITHUB_WORKSPACE/tests/triplets" \
+            --x-install-root="$CONSUMER_ROOT/vcpkg_installed"
+          python scripts/verify_thread_package.py --prepare --asan --require-library-asan \
+            --consumer "$CONSUMER_ROOT" --vcpkg "$VCPKG_ROOT" --triplet x64-windows-asan
+          cmake -B "$CONSUMER_ROOT/build" -S "$CONSUMER_ROOT" \
+            -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" \
+            -DVCPKG_TARGET_TRIPLET=x64-windows-asan \
+            -DVCPKG_OVERLAY_TRIPLETS="$GITHUB_WORKSPACE/tests/triplets" \
+            -DVCPKG_INSTALLED_DIR="$CONSUMER_ROOT/vcpkg_installed" \
+            -DTHREAD_CONSUMER_ASAN=ON
+          cmake --build "$CONSUMER_ROOT/build" --config Release
+          ctest --test-dir "$CONSUMER_ROOT/build" --build-config Release \
+            --output-on-failure --no-tests=error
+          python scripts/verify_thread_package.py --asan --require-library-asan \
+            --consumer "$CONSUMER_ROOT" --vcpkg "$VCPKG_ROOT" --triplet x64-windows-asan \
+            --overlay-triplets="$GITHUB_WORKSPACE/tests/triplets"
+
       - name: Upload install and consumer logs
         if: always()
         uses: actions/upload-artifact@v4
@@ -162,3 +236,16 @@ jobs:
             ${{ runner.temp }}/registry-consumer/build/Testing/Temporary/
             ${{ runner.temp }}/registry-consumer/vcpkg*.json
             ${{ runner.temp }}/registry-consumer/vcpkg_installed/vcpkg/status
+            ${{ runner.temp }}/registry-consumer/thread-abi.json
+            ${{ runner.temp }}/registry-consumer/thread_abi_expected.h
+            ${{ runner.temp }}/registry-consumer/*.log
+            vcpkg/buildtrees/kcenon-thread-system/*-rel/compile_commands.json
+            ${{ runner.temp }}/registry-consumer/vcpkg_installed/*/share/thread_system/
+            ${{ runner.temp }}/registry-consumer/vcpkg_installed/*/lib/pkgconfig/thread_system.pc
+            ${{ runner.temp }}/registry-consumer-asan/thread-abi.json
+            ${{ runner.temp }}/registry-consumer-asan/thread_abi_expected.h
+            ${{ runner.temp }}/registry-consumer-asan/*.log
+            ${{ runner.temp }}/registry-consumer-asan/vcpkg*.json
+            ${{ runner.temp }}/registry-consumer-asan/build/Testing/Temporary/
+            ${{ runner.temp }}/registry-consumer-asan/vcpkg_installed/*/share/thread_system/
+            ${{ runner.temp }}/registry-consumer-asan/vcpkg_installed/*/lib/pkgconfig/thread_system.pc
