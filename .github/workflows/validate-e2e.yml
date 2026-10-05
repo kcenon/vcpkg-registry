@@ -8,9 +8,8 @@ on:
   schedule:
     # Daily 03:17 UTC fresh-download run.
     # Forces every install to re-download the GitHub release archive and
-    # re-verify SHA512 against the value in portfile.cmake. Push/PR runs
-    # keep the GHA binary cache for fast feedback; scheduled runs disable
-    # it so SHA mismatches surface within 24 hours of introduction.
+    # re-verify SHA512 against the value in portfile.cmake. All events use
+    # fresh builds so the same consumer path is exercised before merging.
     #
     # Background: kcenon/common_system#674 (parent EPIC) and
     # kcenon/vcpkg-registry#87 (the audit that revealed all 8 ports had
@@ -18,13 +17,18 @@ on:
     # See kcenon/vcpkg-registry#93 for the no-cache mode rationale.
     - cron: '17 3 * * *'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 env:
-  # Conditional binary-source policy:
-  #   schedule -> 'clear'                 (no cache; forces SHA re-verify)
-  #   push/PR  -> 'clear;x-gha,readwrite' (GHA cache; fast feedback)
-  # Required by kcenon/vcpkg-registry#93 (parent: kcenon/common_system#674).
-  VCPKG_BINARY_SOURCES: >-
-    ${{ github.event_name == 'schedule' && 'clear' || 'clear;x-gha,readwrite' }}
+  # Fresh downloads and builds verify the archive hashes on every platform.
+  VCPKG_BINARY_SOURCES: clear
+  # Tool/scripts revision with the MSYS2 refresh (microsoft/vcpkg#54128).
+  VCPKG_TOOL_COMMIT: 2200159cd465157f20133e363e4604ac4d68181b
+  # Keep dependency versions independent from the tool/scripts upgrade.
+  VCPKG_BUILTIN_BASELINE: b02e341c927f16d991edbd915d8ea43eac52096c
+  REGISTRY_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
 
 jobs:
   e2e-test:
@@ -59,6 +63,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ env.REGISTRY_COMMIT }}
 
       - name: Install system dependencies (Linux)
         if: runner.os == 'Linux'
@@ -77,18 +82,25 @@ jobs:
           echo "SDKROOT=$(xcrun --sdk macosx --show-sdk-path)" >> $GITHUB_ENV
           echo "MACOSX_DEPLOYMENT_TARGET=$(sw_vers -productVersion)" >> $GITHUB_ENV
 
-      - name: Set up vcpkg
-        uses: lukka/run-vcpkg@v11
+      - name: Check out pinned vcpkg tools
+        uses: actions/checkout@v4
         with:
-          # vcpkg 2025.03.19 release
-          vcpkgGitCommitId: "b02e341c927f16d991edbd915d8ea43eac52096c"
+          repository: microsoft/vcpkg
+          ref: ${{ env.VCPKG_TOOL_COMMIT }}
+          path: vcpkg
+          fetch-depth: 0
 
-      - name: Export GitHub Actions cache variables
-        uses: actions/github-script@v7
-        with:
-          script: |
-            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
-            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+      - name: Bootstrap vcpkg
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == Windows ]]; then
+            ./vcpkg/bootstrap-vcpkg.bat -disableMetrics
+          else
+            ./vcpkg/bootstrap-vcpkg.sh -disableMetrics
+          fi
+          echo "VCPKG_ROOT=$GITHUB_WORKSPACE/vcpkg" >> "$GITHUB_ENV"
+          echo "VCPKG_DOWNLOADS=$RUNNER_TEMP/fresh-downloads" >> "$GITHUB_ENV"
+          ./vcpkg/vcpkg version
 
       - name: Determine triplet
         id: triplet
@@ -100,36 +112,53 @@ jobs:
             Windows) echo "value=x64-windows"  >> "$GITHUB_OUTPUT" ;;
           esac
 
-      - name: Install port via vcpkg
+      - name: Create external registry consumer
+        shell: bash
+        env:
+          PORT: ${{ matrix.port }}
+        run: |
+          python scripts/create_e2e_consumer.py "$RUNNER_TEMP/registry-consumer"
+          echo "CONSUMER_ROOT=$RUNNER_TEMP/registry-consumer" >> "$GITHUB_ENV"
+          echo "Registry: $REGISTRY_COMMIT; tools: $VCPKG_TOOL_COMMIT; builtin: $VCPKG_BUILTIN_BASELINE"
+
+      - name: Install port from Git registry (no cache)
         shell: bash
         run: |
           "$VCPKG_ROOT/vcpkg" install \
-            "${{ matrix.port }}:${{ steps.triplet.outputs.value }}" \
-            --overlay-ports="${GITHUB_WORKSPACE}/ports" \
-            --x-install-root="${GITHUB_WORKSPACE}/tests/e2e/vcpkg_installed"
+            --x-manifest-root="$CONSUMER_ROOT" \
+            --triplet="${{ steps.triplet.outputs.value }}" \
+            --x-install-root="$CONSUMER_ROOT/vcpkg_installed"
 
       - name: Configure CMake test project
         shell: bash
         run: |
-          cmake \
-            -B "${GITHUB_WORKSPACE}/tests/e2e/${{ matrix.port }}/build" \
-            -S "${GITHUB_WORKSPACE}/tests/e2e/${{ matrix.port }}" \
-            -DCMAKE_TOOLCHAIN_FILE="${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" \
+          cmake -B "$CONSUMER_ROOT/build" -S "$CONSUMER_ROOT" \
+            -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" \
             -DVCPKG_TARGET_TRIPLET="${{ steps.triplet.outputs.value }}" \
-            -DVCPKG_INSTALLED_DIR="${GITHUB_WORKSPACE}/tests/e2e/vcpkg_installed" \
-            -DVCPKG_MANIFEST_MODE=OFF
+            -DVCPKG_INSTALLED_DIR="$CONSUMER_ROOT/vcpkg_installed"
 
       - name: Build test project
         shell: bash
         run: |
           cmake \
-            --build "${GITHUB_WORKSPACE}/tests/e2e/${{ matrix.port }}/build" \
+            --build "$CONSUMER_ROOT/build" \
             --config Release
 
       - name: Run test binary
         shell: bash
         run: |
           ctest \
-            --test-dir "${GITHUB_WORKSPACE}/tests/e2e/${{ matrix.port }}/build" \
+            --test-dir "$CONSUMER_ROOT/build" \
             --build-config Release \
-            --output-on-failure
+            --output-on-failure --no-tests=error
+
+      - name: Upload install and consumer logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-${{ matrix.port }}-${{ matrix.os }}
+          path: |
+            vcpkg/buildtrees/**/*.log
+            ${{ runner.temp }}/registry-consumer/build/Testing/Temporary/
+            ${{ runner.temp }}/registry-consumer/vcpkg*.json
+            ${{ runner.temp }}/registry-consumer/vcpkg_installed/vcpkg/status

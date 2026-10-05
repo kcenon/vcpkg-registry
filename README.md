@@ -62,6 +62,15 @@ Then install packages normally:
 vcpkg install kcenon-monitoring-system
 ```
 
+The vcpkg checkout supplies download helpers independently of the builtin
+baseline. For the tested Windows setup, pin the tool checkout to
+`2200159cd465157f20133e363e4604ac4d68181b` (includes the MSYS2 refresh) and
+use builtin baseline `b02e341c927f16d991edbd915d8ea43eac52096c`.
+The older tool checkout at that baseline requests an expired MSYS2 runtime
+archive; changing only a manifest baseline does not replace those helpers.
+The E2E workflow uses an external manifest with a Git registry baseline,
+fresh downloads, and binary caching disabled on all 21 existing matrix jobs.
+
 ## Port Management Strategy
 
 This registry follows **Strategy B: Local + Registry Sync**, where each source
