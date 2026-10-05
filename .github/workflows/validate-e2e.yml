@@ -196,6 +196,36 @@ jobs:
             --consumer "$CONSUMER_ROOT" --vcpkg "$VCPKG_ROOT" \
             --triplet '${{ steps.triplet.outputs.value }}'
 
+      - name: Verify Windows Thread ASan archive and consumers
+        if: runner.os == 'Windows' && matrix.port == 'kcenon-thread-system'
+        shell: bash
+        env:
+          PORT: kcenon-thread-system
+          COMMON_CONTRACT: ${{ github.workspace }}/common-contract/scripts/ecosystem_build.py
+        run: |
+          # MSVC detects incompatible STL annotations when only the consumer
+          # has ASan. Build the same Git-registry package with ASan as well.
+          CONSUMER_ROOT="$RUNNER_TEMP/registry-consumer-asan"
+          export VCPKG_DOWNLOADS="$RUNNER_TEMP/fresh-downloads-asan"
+          python scripts/create_e2e_consumer.py "$CONSUMER_ROOT"
+          "$VCPKG_ROOT/vcpkg" install --x-manifest-root="$CONSUMER_ROOT" \
+            --triplet=x64-windows-asan --overlay-triplets="$GITHUB_WORKSPACE/tests/triplets" \
+            --x-install-root="$CONSUMER_ROOT/vcpkg_installed"
+          python scripts/verify_thread_package.py --prepare --asan --require-library-asan \
+            --consumer "$CONSUMER_ROOT" --vcpkg "$VCPKG_ROOT" --triplet x64-windows-asan
+          cmake -B "$CONSUMER_ROOT/build" -S "$CONSUMER_ROOT" \
+            -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" \
+            -DVCPKG_TARGET_TRIPLET=x64-windows-asan \
+            -DVCPKG_OVERLAY_TRIPLETS="$GITHUB_WORKSPACE/tests/triplets" \
+            -DVCPKG_INSTALLED_DIR="$CONSUMER_ROOT/vcpkg_installed" \
+            -DTHREAD_CONSUMER_ASAN=ON
+          cmake --build "$CONSUMER_ROOT/build" --config Release
+          ctest --test-dir "$CONSUMER_ROOT/build" --build-config Release \
+            --output-on-failure --no-tests=error
+          python scripts/verify_thread_package.py --asan --require-library-asan \
+            --consumer "$CONSUMER_ROOT" --vcpkg "$VCPKG_ROOT" --triplet x64-windows-asan \
+            --overlay-triplets="$GITHUB_WORKSPACE/tests/triplets"
+
       - name: Upload install and consumer logs
         if: always()
         uses: actions/upload-artifact@v4
@@ -212,3 +242,10 @@ jobs:
             vcpkg/buildtrees/kcenon-thread-system/*-rel/compile_commands.json
             ${{ runner.temp }}/registry-consumer/vcpkg_installed/*/share/thread_system/
             ${{ runner.temp }}/registry-consumer/vcpkg_installed/*/lib/pkgconfig/thread_system.pc
+            ${{ runner.temp }}/registry-consumer-asan/thread-abi.json
+            ${{ runner.temp }}/registry-consumer-asan/thread_abi_expected.h
+            ${{ runner.temp }}/registry-consumer-asan/*.log
+            ${{ runner.temp }}/registry-consumer-asan/vcpkg*.json
+            ${{ runner.temp }}/registry-consumer-asan/build/Testing/Temporary/
+            ${{ runner.temp }}/registry-consumer-asan/vcpkg_installed/*/share/thread_system/
+            ${{ runner.temp }}/registry-consumer-asan/vcpkg_installed/*/lib/pkgconfig/thread_system.pc

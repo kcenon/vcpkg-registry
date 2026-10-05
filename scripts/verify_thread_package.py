@@ -46,6 +46,9 @@ def main():
     parser.add_argument("--vcpkg", type=Path, required=True)
     parser.add_argument("--triplet", required=True)
     parser.add_argument("--prepare", action="store_true")
+    parser.add_argument("--asan", action=argparse.BooleanOptionalAction, default=os.name != "nt")
+    parser.add_argument("--require-library-asan", action="store_true")
+    parser.add_argument("--overlay-triplets", type=Path)
     args = parser.parse_args()
     consumer, vcpkg = args.consumer.resolve(), args.vcpkg.resolve()
     evidence = consumer / "thread-abi.json"
@@ -53,6 +56,7 @@ def main():
         commands_path = vcpkg / "buildtrees/kcenon-thread-system" / (args.triplet + "-rel") / "compile_commands.json"
         commands = json.loads(commands_path.read_text())
         snapshots = []
+        instrumentation = []
         for entry in commands:
             command = entry.get("arguments") or shlex.split(entry["command"])
             # CMake records a normalized output path. Inspect it before POSIX
@@ -60,11 +64,14 @@ def main():
             output = entry.get("output", "") or " ".join(entry.get("arguments") or [entry["command"]])
             if "CMakeFiles/thread_system.dir/" in output.replace("\\", "/"):
                 snapshots.append(definitions(command))
+                instrumentation.append(any(flag in command for flag in ("-fsanitize=address", "/fsanitize=address")))
         if not snapshots or any(s != snapshots[0] for s in snapshots):
             raise RuntimeError("Missing or inconsistent archive feature definitions")
         expected = snapshots[0]
         if expected["BUILD_WITH_COMMON_SYSTEM"] != "1":
             raise RuntimeError("Archive compilation provenance did not include required common integration")
+        if args.require_library_asan and not all(instrumentation):
+            raise RuntimeError("ASan profile did not instrument every archive translation unit")
         lines = ["#pragma once"]
         for name, value in expected.items():
             marker = "THREAD_ABI_MISMATCH_" + name
@@ -76,11 +83,14 @@ def main():
         (consumer / "thread_abi_expected.h").write_text("\n".join(lines) + "\n")
         evidence.write_text(json.dumps({"archive_definitions": expected,
                                        "archive_translation_units": len(snapshots),
+                                       "archive_asan": all(instrumentation), "consumer_asan": args.asan,
                                        "compile_commands": str(commands_path)}, indent=2) + "\n")
         print(evidence.read_text())
         return
 
     results = json.loads(evidence.read_text())
+    if args.require_library_asan and (not results.get("archive_asan") or not args.asan):
+        raise RuntimeError("The ASan profile must instrument both the archive and consumer")
     prefix = consumer / "vcpkg_installed" / args.triplet
     env = dict(os.environ, PKG_CONFIG_PATH=str(prefix / "lib/pkgconfig"),
                PKG_CONFIG_LIBDIR=str(prefix / "lib/pkgconfig"),
@@ -101,20 +111,26 @@ def main():
         flags = [*cflags, *([mutation] if negative else [])]
         if os.name == "nt":
             output = output.with_suffix(".exe")
-            command = [*compiler, "/nologo", "/std:c++20", "/EHsc", "/MD", "/fsanitize=address", "/Zi",
-                       *flags, consumer / "main.cpp", f"/Fe:{output}", "/link", *libs]
+            sanitizer = ["/fsanitize=address", "/Zi"] if args.asan else []
+            link_flags = ["/DEBUG", "/INCREMENTAL:NO"] if args.asan else []
+            command = [*compiler, "/nologo", "/std:c++20", "/EHsc", "/MD", *sanitizer,
+                       *flags, consumer / "main.cpp", f"/Fe:{output}", "/link", *link_flags, *libs]
         else:
-            command = [*compiler, "-std=c++20", "-fsanitize=address", "-fno-omit-frame-pointer",
+            sanitizer = ["-fsanitize=address", "-fno-omit-frame-pointer"] if args.asan else []
+            command = [*compiler, "-std=c++20", *sanitizer,
                        *flags, consumer / "main.cpp", "-o", output, *libs]
         run(command, cwd=consumer, env=env, negative=negative,
             log_name="pkg-negative.log" if negative else "pkg-build.log")
         if not negative:
             run([output], cwd=consumer, env=env, log_name="pkg-run.log")
     negative_build = consumer / "build-negative"
+    overlay = ([f"-DVCPKG_OVERLAY_TRIPLETS={args.overlay_triplets.resolve()}"]
+               if args.overlay_triplets else [])
     run(["cmake", "-S", consumer, "-B", negative_build,
          f"-DCMAKE_TOOLCHAIN_FILE={vcpkg}/scripts/buildsystems/vcpkg.cmake",
          f"-DVCPKG_TARGET_TRIPLET={args.triplet}", f"-DVCPKG_INSTALLED_DIR={consumer}/vcpkg_installed",
-         f"-DABI_NEGATIVE_FLAG={mutation}"], cwd=consumer)
+         f"-DTHREAD_CONSUMER_ASAN={'ON' if args.asan else 'OFF'}",
+         *overlay, f"-DABI_NEGATIVE_FLAG={mutation}"], cwd=consumer)
     run(["cmake", "--build", negative_build, "--config", "Release"], cwd=consumer,
         negative=True, log_name="cmake-negative.log")
     results.update(cmake="passed", pkg_config="passed", cmake_negative="rejected", pkg_negative="rejected")

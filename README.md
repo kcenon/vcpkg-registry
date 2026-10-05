@@ -176,10 +176,14 @@ to verify both header availability and linkage.
 Thread additionally compares exported feature macros with the actual archive's
 `compile_commands.json`. Its CMake and pkg-config consumers run the installed
 worker enqueue/start/stop contract from common_system #751 (pinned commit
-`4aa24d2650c1d3d8446f7e9f681824bec12b5112`) with AddressSanitizer enabled in
-the consumers. Deliberately reversing `USE_STD_JTHREAD` must fail compilation
+`4aa24d2650c1d3d8446f7e9f681824bec12b5112`). Linux/macOS consumers enable
+AddressSanitizer. Windows first tests the regular package, then adds an
+`x64-windows-asan` install with both the archive and consumers instrumented.
+This preserves MSVC's required STL annotation consistency without disabling
+annotations. The extra profile verifies ASan flags in every archive translation
+unit. Deliberately reversing `USE_STD_JTHREAD` must fail compilation
 with the expected ABI mismatch diagnostic through both build interfaces.
-The production archive retains its normal vcpkg instrumentation; the Thread
+The regular production archive retains its normal vcpkg instrumentation; the Thread
 source repository separately tests instrumented libraries with jthread ON/OFF.
 
 Thread 0.3.2#3 backports public CMake/pkg-config ABI definitions and two missing
