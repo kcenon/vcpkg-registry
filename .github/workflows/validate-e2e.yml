@@ -17,6 +17,10 @@ on:
     # See kcenon/vcpkg-registry#93 for the no-cache mode rationale.
     - cron: '17 3 * * *'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 env:
   # Fresh downloads and builds verify the archive hashes on every platform.
   VCPKG_BINARY_SOURCES: clear

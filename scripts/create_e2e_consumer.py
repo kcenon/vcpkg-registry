@@ -16,5 +16,6 @@ shutil.copytree(root / "tests" / "e2e" / port, destination)
 (destination / "vcpkg-configuration.json").write_text(json.dumps({
     "default-registry": {"kind": "builtin", "baseline": os.environ["VCPKG_BUILTIN_BASELINE"]},
     "registries": [{"kind": "git", "repository": "https://github.com/kcenon/vcpkg-registry.git",
-                    "baseline": os.environ["REGISTRY_COMMIT"], "packages": ["kcenon-*"]}],
+                    "baseline": os.environ["REGISTRY_COMMIT"],
+                    "reference": os.environ["REGISTRY_COMMIT"], "packages": ["kcenon-*"]}],
 }, indent=2) + "\n")
