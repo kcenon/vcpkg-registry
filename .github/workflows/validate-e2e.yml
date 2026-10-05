@@ -84,6 +84,7 @@ jobs:
           repository: microsoft/vcpkg
           ref: ${{ env.VCPKG_TOOL_COMMIT }}
           path: vcpkg
+          fetch-depth: 0
 
       - name: Bootstrap vcpkg
         shell: bash
