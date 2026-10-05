@@ -5,29 +5,47 @@ vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO kcenon/container_system
     REF "v${VERSION}"
-    SHA512 3cf36f0beb9a8f7d01f2504126ecb8472fa27ed5d0091192e078846309c1e66abd87e8b02bccd41af1412b81053d053ac57f3810b202f70a9b91d1c3ca8a5b4e
+    SHA512 680ec3dc12797b26bef55ed8e918abb0a1ff0e91a3c5c9efc7864cccec93a569b580265d57166e4732833a3c6c50183ed77a305f44c1ac77e942b0d1a993204c
     HEAD_REF main
+)
+
+# Map vcpkg.json features to CMake options.
+# A feature listed multiple times sets several CMake variables at once.
+# vcpkg_check_features emits -DXXX=ON when the feature is selected and
+# -DXXX=OFF otherwise, so all six flags below default to OFF for a
+# minimal install (typical vcpkg consumer use case).
+vcpkg_check_features(
+    OUT_FEATURE_OPTIONS FEATURE_OPTIONS
+    FEATURES
+        testing  BUILD_TESTS
+        testing  CONTAINER_BUILD_INTEGRATION_TESTS
+        testing  CONTAINER_BUILD_BENCHMARKS
+        samples  BUILD_CONTAINER_SAMPLES
+        samples  BUILD_CONTAINER_EXAMPLES
+        docs     BUILD_DOCUMENTATION
 )
 
 vcpkg_cmake_configure(
     SOURCE_PATH "${SOURCE_PATH}"
     OPTIONS
+        ${FEATURE_OPTIONS}
         -DBUILD_WITH_COMMON_SYSTEM=ON
         -DCOMMON_SYSTEM_ROOT=${CURRENT_INSTALLED_DIR}
-        -DBUILD_TESTS=OFF
-        -DCONTAINER_BUILD_INTEGRATION_TESTS=OFF
-        -DCONTAINER_BUILD_BENCHMARKS=OFF
-        -DBUILD_DOCUMENTATION=OFF
-        -DBUILD_CONTAINER_SAMPLES=OFF
-        -DBUILD_CONTAINER_EXAMPLES=OFF
         -DFETCHCONTENT_FULLY_DISCONNECTED=ON
 )
 
 vcpkg_cmake_install()
 
 vcpkg_cmake_config_fixup(
-    PACKAGE_NAME ContainerSystem
-    CONFIG_PATH lib/cmake/ContainerSystem
+    PACKAGE_NAME container_system
+    CONFIG_PATH lib/cmake/container_system
+)
+
+# Released downstream packages still call find_package(ContainerSystem).
+file(INSTALL
+    "${CMAKE_CURRENT_LIST_DIR}/ContainerSystemConfig.cmake"
+    "${CMAKE_CURRENT_LIST_DIR}/ContainerSystemConfigVersion.cmake"
+    DESTINATION "${CURRENT_PACKAGES_DIR}/share/ContainerSystem"
 )
 
 # Remove example/sample executables and empty bin directories

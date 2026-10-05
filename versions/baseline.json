@@ -13,8 +13,8 @@
       "port-version": 10
     },
     "kcenon-container-system": {
-      "baseline": "0.1.0",
-      "port-version": 8
+      "baseline": "1.0.0",
+      "port-version": 1
     },
     "kcenon-monitoring-system": {
       "baseline": "0.1.0",
