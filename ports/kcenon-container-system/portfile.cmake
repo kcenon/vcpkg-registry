@@ -41,6 +41,13 @@ vcpkg_cmake_config_fixup(
     CONFIG_PATH lib/cmake/container_system
 )
 
+# Released downstream packages still call find_package(ContainerSystem).
+file(INSTALL
+    "${CMAKE_CURRENT_LIST_DIR}/ContainerSystemConfig.cmake"
+    "${CMAKE_CURRENT_LIST_DIR}/ContainerSystemConfigVersion.cmake"
+    DESTINATION "${CURRENT_PACKAGES_DIR}/share/ContainerSystem"
+)
+
 # Remove example/sample executables and empty bin directories
 file(REMOVE_RECURSE
     "${CURRENT_PACKAGES_DIR}/bin/examples"
